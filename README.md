@@ -71,7 +71,7 @@ This project is available on [pub.dev](https://pub.dev/packages/mapbox_gl), foll
 ## Supported API
 
 | Feature | Android | iOS |
-| ------ | ------ | ----- | ----- |
+| ------ | ------ | ----- |
 | Style | :white_check_mark:   | :white_check_mark: |
 | Camera | :white_check_mark:   | :white_check_mark: |
 | Gesture | :white_check_mark:   | :white_check_mark: |
