@@ -874,6 +874,10 @@ class MapboxMapController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<List> getClusterLeaves(String sourceId, Map<String, dynamic> cluster, int limit, int offset) async {
+    return _mapboxGlPlatform.getClusterLeaves(sourceId, cluster, limit, offset);
+  }
+
   Future<List> queryRenderedFeatures(Point<double> point, List<String> layerIds, List<Object>? filter) async {
     return _mapboxGlPlatform.queryRenderedFeatures(point, layerIds, filter);
   }

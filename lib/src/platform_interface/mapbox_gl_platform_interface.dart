@@ -177,6 +177,10 @@ abstract class MapboxGlPlatform {
     throw UnimplementedError('removeFills() has not been implemented.');
   }
 
+  Future<List> getClusterLeaves(String sourceId, Map<String, dynamic> cluster, int limit, int offset) async {
+    throw UnimplementedError('getClusterLeaves() has not been implemented.');
+  }
+
   Future<List> queryRenderedFeatures(Point<double> point, List<String> layerIds, List<Object>? filter) async {
     throw UnimplementedError('queryRenderedFeatures() has not been implemented.');
   }

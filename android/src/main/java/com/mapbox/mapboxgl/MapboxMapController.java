@@ -768,6 +768,27 @@ final class MapboxMapController
         }
         break;
       }
+      case "map#getClusterLeaves": {
+        Map<String, Object> reply = new HashMap<>();
+
+        final String sourceId = call.argument("sourceId");
+        GeoJsonSource geoJsonSource = style.getSourceAs(sourceId);
+
+        final int limit = call.argument("limit");
+        final int offset = call.argument("offset");
+        final Feature cluster = Feature.fromJson(call.argument("cluster"));
+
+        final FeatureCollection features = geoJsonSource.getClusterLeaves(cluster, limit, offset);
+
+        List<String> featuresJson = new ArrayList<>();
+        for (Feature feature : features.features()) {
+          featuresJson.add(feature.toJson());
+        }
+        reply.put("features", featuresJson);
+        result.success(reply);
+
+        break;
+      }
       case "map#queryRenderedFeatures": {
         Map<String, Object> reply = new HashMap<>();
         List<Feature> features;

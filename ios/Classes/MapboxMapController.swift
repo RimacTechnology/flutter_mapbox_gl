@@ -3,6 +3,11 @@ import Mapbox
 import MapboxAnnotationExtension
 import UIKit
 
+enum APIError: Error { // 2
+    case unauthorized
+    case unknown
+}
+
 class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, MapboxMapOptionsSink,
     MGLAnnotationControllerDelegate
 {
@@ -187,6 +192,51 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 style.localizeLabels(into: locale)
             }
             result(nil)
+        case "map#getClusterLeaves":
+            guard let arguments = methodCall.arguments as? [String: Any] else { return }
+            guard let sourceId = arguments["sourceId"] as? String else { return }
+            guard let limit = arguments["limit"] as? UInt else { return }
+            guard let offset = arguments["offset"] as? UInt else { return }
+            guard let cluster = arguments["cluster"] as? String else { return }
+            let source = mapView.style?.source(withIdentifier: sourceId) as? MGLShapeSource
+
+            do {
+                let shape = try! MGLShape(data: cluster.data(using: .utf8) as! Data, encoding: String.Encoding.utf8.rawValue)
+                guard let pointFeature = shape as? MGLPointFeature else {
+                    throw fatalError("Not an instance of MGLPointFeature")
+                }
+                guard let clusterPointFeature = pointFeature as? MGLCluster else {
+                    throw fatalError("Not and instance of MGLCluster")
+                }
+                guard clusterPointFeature is MGLPointFeatureCluster else {
+                    throw fatalError("Not and instance of MGLPointFeatureCluster")
+                }
+
+                let features = source!.leaves(
+                    of: clusterPointFeature as! MGLPointFeatureCluster,
+                    offset: offset,
+                    limit: limit
+                ) as? NSArray as? [MGLPointFeature]
+
+                var reply = [String: NSObject]()
+                var featuresJson = [String]()
+                for feature in features ?? [] {
+                    let dictionary = feature.geoJSONDictionary()
+                    if let theJSONData = try? JSONSerialization.data(
+                       withJSONObject: dictionary,
+                        options: []
+                    ),
+                       let theJSONText = String(data: theJSONData, encoding: .ascii)
+                    {
+                        featuresJson.append(theJSONText)
+                    }
+                }
+
+                reply["features"] = featuresJson as NSObject
+                result(reply)
+            } catch {
+                print(error)
+            }
         case "map#queryRenderedFeatures":
             guard let arguments = methodCall.arguments as? [String: Any] else { return }
             let layerIds = arguments["layerIds"] as? Set<String>

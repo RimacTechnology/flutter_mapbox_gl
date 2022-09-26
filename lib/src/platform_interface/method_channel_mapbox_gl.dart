@@ -429,6 +429,25 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
   }
 
   @override
+  Future<List> getClusterLeaves(String sourceId, Map<String, dynamic> cluster, int limit, int offset) async {
+    try {
+      final Map<dynamic, dynamic> reply = await _channel.invokeMethod(
+          'map#getClusterLeaves',
+          <String, Object?>{
+            'sourceId': sourceId,
+            'cluster': jsonEncode(cluster),
+            'limit': limit,
+            'offset': offset,
+          }
+      );
+
+      return reply['features'].map((feature) => jsonDecode(feature)).toList();
+    } on PlatformException catch(e) {
+      return new Future.error(e);
+    }
+  }
+
+  @override
   Future<List> queryRenderedFeatures(Point<double> point, List<String> layerIds, List<Object>? filter) async {
     try {
       final Map<dynamic, dynamic> reply = await _channel.invokeMethod(
