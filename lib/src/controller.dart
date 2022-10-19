@@ -95,14 +95,28 @@ class MapboxMapController extends ChangeNotifier {
       }
     });
 
+    _mapboxGlPlatform.onScaleBeingPlatform.add((_) {
+      _isCameraZooming = true;
+      scaleStart.notifyListeners();
+    });
+
+    _mapboxGlPlatform.onScalePlatform.add((_) {
+      scale.notifyListeners();
+    });
+
+    _mapboxGlPlatform.onScaleEndPlatform.add((_) {
+      _isCameraZooming = false;
+      scaleEnd.notifyListeners();
+    });
+
     _mapboxGlPlatform.onCameraMoveStartedPlatform.add((_) {
       _isCameraMoving = true;
-      notifyListeners();
+      cameraMoveStart.notifyListeners();
     });
 
     _mapboxGlPlatform.onCameraMovePlatform.add((cameraPosition) {
       _cameraPosition = cameraPosition;
-      notifyListeners();
+      cameraMove.notifyListeners();
     });
 
     _mapboxGlPlatform.onCameraIdlePlatform.add((cameraPosition) {
@@ -113,7 +127,7 @@ class MapboxMapController extends ChangeNotifier {
       if (onCameraIdle != null) {
         onCameraIdle!();
       }
-      notifyListeners();
+      cameraMoveEnd.notifyListeners();
     });
 
     _mapboxGlPlatform.onMapStyleLoadedPlatform.add((_) {
@@ -161,6 +175,14 @@ class MapboxMapController extends ChangeNotifier {
       onUserLocationUpdated?.call(location);
     });
   }
+
+  final ChangeNotifier scaleStart = ChangeNotifier();
+  final ChangeNotifier scale = ChangeNotifier();
+  final ChangeNotifier scaleEnd = ChangeNotifier();
+
+  final ChangeNotifier cameraMoveStart = ChangeNotifier();
+  final ChangeNotifier cameraMove = ChangeNotifier();
+  final ChangeNotifier cameraMoveEnd = ChangeNotifier();
 
   final OnStyleLoadedCallback? onStyleLoadedCallback;
   final OnMapClickCallback? onMapClick;
@@ -222,6 +244,10 @@ class MapboxMapController extends ChangeNotifier {
   bool get isCameraMoving => _isCameraMoving;
   bool _isCameraMoving = false;
 
+  /// True if the map camera is currently zooming.
+  bool get isCameraZooming => _isCameraZooming;
+  bool _isCameraZooming = false;
+
   /// Returns the most recent camera position reported by the platform side.
   /// Will be null, if [MapboxMap.trackCameraPosition] is false.
   CameraPosition? get cameraPosition => _cameraPosition;
@@ -242,7 +268,6 @@ class MapboxMapController extends ChangeNotifier {
   /// The returned [Future] completes after listeners have been notified.
   Future<void> _updateMapOptions(Map<String, dynamic> optionsUpdate) async {
     _cameraPosition = await _mapboxGlPlatform.updateMapOptions(optionsUpdate);
-    notifyListeners();
   }
 
   /// Starts an animated change of the map camera position.
@@ -527,7 +552,7 @@ class MapboxMapController extends ChangeNotifier {
 
     final symbols = await _mapboxGlPlatform.addSymbols(effectiveOptions, data);
     symbols.forEach((s) => _symbols[s.id] = s);
-    notifyListeners();
+
     return symbols;
   }
 
@@ -542,7 +567,6 @@ class MapboxMapController extends ChangeNotifier {
     assert(_symbols[symbol.id] == symbol);
     await _mapboxGlPlatform.updateSymbol(symbol, changes);
     symbol.options = symbol.options.copyWith(changes);
-    notifyListeners();
   }
 
   /// Retrieves the current position of the symbol.
@@ -551,7 +575,7 @@ class MapboxMapController extends ChangeNotifier {
   Future<LatLng> getSymbolLatLng(Symbol symbol) async {
     assert(_symbols[symbol.id] == symbol);
     final symbolLatLng = await _mapboxGlPlatform.getSymbolLatLng(symbol);
-    notifyListeners();
+
     return symbolLatLng;
   }
 
@@ -565,7 +589,6 @@ class MapboxMapController extends ChangeNotifier {
   Future<void> removeSymbol(Symbol symbol) async {
     assert(_symbols[symbol.id] == symbol);
     await _removeSymbols([symbol.id]);
-    notifyListeners();
   }
 
   /// Removes the specified [symbols] from the map. The symbols must be current
@@ -580,7 +603,6 @@ class MapboxMapController extends ChangeNotifier {
     assert(symbols.length == ids.length);
 
     await _removeSymbols(ids);
-    notifyListeners();
   }
 
   /// Removes all [symbols] from the map.
@@ -592,7 +614,6 @@ class MapboxMapController extends ChangeNotifier {
   Future<void> clearSymbols() async {
     await _mapboxGlPlatform.removeSymbols(_symbols.keys);
     _symbols.clear();
-    notifyListeners();
   }
 
   /// Helper method to remove a single symbol from the map. Consumed by
@@ -616,7 +637,7 @@ class MapboxMapController extends ChangeNotifier {
     final LineOptions effectiveOptions = LineOptions.defaultOptions.copyWith(options);
     final line = await _mapboxGlPlatform.addLine(effectiveOptions, data);
     _lines[line.id] = line;
-    notifyListeners();
+
     return line;
   }
 
@@ -630,7 +651,7 @@ class MapboxMapController extends ChangeNotifier {
   Future<List<Line>> addLines(List<LineOptions> options, [List<Map>? data]) async {
     final lines = await _mapboxGlPlatform.addLines(options, data);
     lines.forEach((l) => _lines[l.id] = l);
-    notifyListeners();
+
     return lines;
   }
 
@@ -645,7 +666,6 @@ class MapboxMapController extends ChangeNotifier {
     assert(_lines[line.id] == line);
     await _mapboxGlPlatform.updateLine(line, changes);
     line.options = line.options.copyWith(changes);
-    notifyListeners();
   }
 
   /// Retrieves the current position of the line.
@@ -654,7 +674,7 @@ class MapboxMapController extends ChangeNotifier {
   Future<List<LatLng>> getLineLatLngs(Line line) async {
     assert(_lines[line.id] == line);
     final lineLatLngs = await _mapboxGlPlatform.getLineLatLngs(line);
-    notifyListeners();
+
     return lineLatLngs;
   }
 
@@ -670,7 +690,6 @@ class MapboxMapController extends ChangeNotifier {
 
     await _mapboxGlPlatform.removeLine(line.id);
     _lines.remove(line.id);
-    notifyListeners();
   }
 
   /// Removes the specified [lines] from the map. The lines must be current
@@ -686,7 +705,6 @@ class MapboxMapController extends ChangeNotifier {
 
     await _mapboxGlPlatform.removeLines(ids);
     ids.forEach((id) => _lines.remove(id));
-    notifyListeners();
   }
 
   /// Removes all [lines] from the map.
@@ -699,7 +717,6 @@ class MapboxMapController extends ChangeNotifier {
     final List<String> lineIds = List<String>.from(_lines.keys);
     await _mapboxGlPlatform.removeLines(lineIds);
     _lines.clear();
-    notifyListeners();
   }
 
   /// Adds a circle to the map, configured using the specified custom [options].
@@ -713,7 +730,7 @@ class MapboxMapController extends ChangeNotifier {
     final CircleOptions effectiveOptions = CircleOptions.defaultOptions.copyWith(options);
     final circle = await _mapboxGlPlatform.addCircle(effectiveOptions, data);
     _circles[circle.id] = circle;
-    notifyListeners();
+
     return circle;
   }
 
@@ -728,7 +745,6 @@ class MapboxMapController extends ChangeNotifier {
     assert(_circles[circle.id] == circle);
     await _mapboxGlPlatform.updateCircle(circle, changes);
     circle.options = circle.options.copyWith(changes);
-    notifyListeners();
   }
 
   /// Retrieves the current position of the circle.
@@ -737,7 +753,7 @@ class MapboxMapController extends ChangeNotifier {
   Future<LatLng> getCircleLatLng(Circle circle) async {
     assert(_circles[circle.id] == circle);
     final circleLatLng = await _mapboxGlPlatform.getCircleLatLng(circle);
-    notifyListeners();
+
     return circleLatLng;
   }
 
@@ -753,8 +769,6 @@ class MapboxMapController extends ChangeNotifier {
 
     await _mapboxGlPlatform.removeCircle(circle.id);
     _circles.remove(circle.id);
-
-    notifyListeners();
   }
 
   /// Removes the specified [circles] from the map. The circles must be current
@@ -770,7 +784,6 @@ class MapboxMapController extends ChangeNotifier {
 
     await _mapboxGlPlatform.removeCircles(ids);
     ids.forEach((id) => _circles.remove(id));
-    notifyListeners();
   }
 
   /// Removes all [circles] from the map.
@@ -782,8 +795,6 @@ class MapboxMapController extends ChangeNotifier {
   Future<void> clearCircles() async {
     await _mapboxGlPlatform.removeCircles(_circles.keys);
     _circles.clear();
-
-    notifyListeners();
   }
 
   /// Adds a fill to the map, configured using the specified custom [options].
@@ -797,7 +808,7 @@ class MapboxMapController extends ChangeNotifier {
     final FillOptions effectiveOptions = FillOptions.defaultOptions.copyWith(options);
     final fill = await _mapboxGlPlatform.addFill(effectiveOptions, data);
     _fills[fill.id] = fill;
-    notifyListeners();
+
     return fill;
   }
 
@@ -812,7 +823,7 @@ class MapboxMapController extends ChangeNotifier {
   Future<List<Fill>> addFills(List<FillOptions> options, [List<Map>? data]) async {
     final circles = await _mapboxGlPlatform.addFills(options, data);
     circles.forEach((f) => _fills[f.id] = f);
-    notifyListeners();
+
     return circles;
   }
 
@@ -827,7 +838,6 @@ class MapboxMapController extends ChangeNotifier {
     assert(_fills[fill.id] == fill);
     await _mapboxGlPlatform.updateFill(fill, changes);
     fill.options = fill.options.copyWith(changes);
-    notifyListeners();
   }
 
   /// Removes all [fill] from the map.
@@ -839,8 +849,6 @@ class MapboxMapController extends ChangeNotifier {
   Future<void> clearFills() async {
     await _mapboxGlPlatform.removeFills(_fills.keys);
     _fills.clear();
-
-    notifyListeners();
   }
 
   /// Removes the specified [fill] from the map. The fill must be a current
@@ -854,8 +862,6 @@ class MapboxMapController extends ChangeNotifier {
     assert(_fills[fill.id] == fill);
     await _mapboxGlPlatform.removeFill(fill.id);
     _fills.remove(fill.id);
-
-    notifyListeners();
   }
 
   /// Removes the specified [fills] from the map. The fills must be current
@@ -871,7 +877,6 @@ class MapboxMapController extends ChangeNotifier {
 
     await _mapboxGlPlatform.removeFills(ids);
     ids.forEach((id) => _fills.remove(id));
-    notifyListeners();
   }
 
   Future<List> getClusterLeaves(String sourceId, Map<String, dynamic> cluster, int limit, int offset) async {

@@ -34,6 +34,7 @@ import com.mapbox.android.core.location.LocationEngine;
 import com.mapbox.android.core.location.LocationEngineCallback;
 import com.mapbox.android.core.location.LocationEngineProvider;
 import com.mapbox.android.core.location.LocationEngineResult;
+import com.mapbox.android.gestures.StandardScaleGestureDetector;
 import com.mapbox.android.telemetry.TelemetryEnabler;
 import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
@@ -116,6 +117,7 @@ import io.flutter.plugin.platform.PlatformView;
 @SuppressLint("MissingPermission")
 final class MapboxMapController
         implements DefaultLifecycleObserver,
+        MapboxMap.OnScaleListener,
         MapboxMap.OnCameraIdleListener,
         MapboxMap.OnCameraMoveListener,
         MapboxMap.OnCameraMoveStartedListener,
@@ -289,9 +291,28 @@ final class MapboxMapController
       mapReadyResult.success(null);
       mapReadyResult = null;
     }
+
+    // mapboxMap.addOnScaleListener(this);
     mapboxMap.addOnCameraMoveStartedListener(this);
     mapboxMap.addOnCameraMoveListener(this);
     mapboxMap.addOnCameraIdleListener(this);
+
+    mapboxMap.addOnScaleListener(new MapboxMap.OnScaleListener() {
+      @Override
+      public void onScaleBegin(@NonNull StandardScaleGestureDetector detector) {
+        methodChannel.invokeMethod("scale#onScaleBegin", null);
+      }
+
+      @Override
+      public void onScale(@NonNull StandardScaleGestureDetector detector) {
+        methodChannel.invokeMethod("scale#onScale", null);
+      }
+
+      @Override
+      public void onScaleEnd(@NonNull StandardScaleGestureDetector detector) {
+        methodChannel.invokeMethod("scale#onScaleEnd", null);
+      }
+    });
 
     mapView.addOnStyleImageMissingListener((id) -> {
       DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
@@ -1470,6 +1491,24 @@ final class MapboxMapController
   }
 
   @Override
+  public void onScaleBegin(@NonNull StandardScaleGestureDetector detector) {
+    Log.e(TAG, "scale begin");
+    methodChannel.invokeMethod("scale#onScaleBegin", null);
+  }
+
+  @Override
+  public void onScale(@NonNull StandardScaleGestureDetector detector) {
+    Log.e(TAG, "scale");
+    methodChannel.invokeMethod("scale#onScale", null);
+  }
+
+  @Override
+  public void onScaleEnd(@NonNull StandardScaleGestureDetector detector) {
+    Log.e(TAG, "scale end");
+    methodChannel.invokeMethod("scale#onScaleEnd", null);
+  }
+
+  @Override
   public void onCameraMoveStarted(int reason) {
     final Map<String, Object> arguments = new HashMap<>(2);
     boolean isGesture = reason == MapboxMap.OnCameraMoveStartedListener.REASON_API_GESTURE;
@@ -1482,6 +1521,7 @@ final class MapboxMapController
     if (!trackCameraPosition) {
       return;
     }
+
     final Map<String, Object> arguments = new HashMap<>(2);
     arguments.put("position", Convert.toJson(mapboxMap.getCameraPosition()));
     methodChannel.invokeMethod("camera#onMove", arguments);
@@ -1493,6 +1533,7 @@ final class MapboxMapController
     if (trackCameraPosition) {
       arguments.put("position", Convert.toJson(mapboxMap.getCameraPosition()));
     }
+
     methodChannel.invokeMethod("camera#onIdle", arguments);
   }
 

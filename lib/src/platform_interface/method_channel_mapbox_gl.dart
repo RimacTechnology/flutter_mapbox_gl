@@ -43,6 +43,15 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
         final double lat = call.arguments['lat'];
         onFeatureTappedPlatform({'id': id, 'point': Point<double>(x, y), 'latLng': LatLng(lat, lng)});
         break;
+      case 'scale#onScaleBegin':
+        onScaleBeingPlatform(null);
+        break;
+      case 'scale#onScale':
+        onScalePlatform(null);
+        break;
+      case 'scale#onScaleEnd':
+        onScaleEndPlatform(null);
+        break;
       case 'camera#onMoveStarted':
         onCameraMoveStartedPlatform(null);
         break;

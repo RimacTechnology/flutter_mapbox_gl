@@ -9,7 +9,7 @@ enum APIError: Error { // 2
 }
 
 class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, MapboxMapOptionsSink,
-    MGLAnnotationControllerDelegate
+    MGLAnnotationControllerDelegate, UIGestureRecognizerDelegate
 {
     private var registrar: FlutterPluginRegistrar
     private var channel: FlutterMethodChannel?
@@ -74,6 +74,13 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
         }
         mapView.addGestureRecognizer(singleTap)
 
+        let pinch = UIPinchGestureRecognizer(
+            target: self,
+            action: #selector(handlePinch(_:))
+        )
+        pinch.delegate = self
+        mapView.addGestureRecognizer(pinch)
+
         let longPress = UILongPressGestureRecognizer(
             target: self,
             action: #selector(handleMapLongPress(sender:))
@@ -111,6 +118,20 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 }
             }
         }
+    }
+
+    @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
+        if gesture.state == .began {
+            channel?.invokeMethod("scale#onScaleBegin", arguments: nil)
+        } else if gesture.state == .changed {
+            channel?.invokeMethod("scale#onScale", arguments: nil)
+        } else if gesture.state == .ended {
+            channel?.invokeMethod("scale#onScaleEnd", arguments: nil)
+        }
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
     }
 
     func removeAllForController(controller: MGLAnnotationController, ids: [String]) {
