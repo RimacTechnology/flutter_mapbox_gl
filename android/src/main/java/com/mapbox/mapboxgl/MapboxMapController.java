@@ -1492,19 +1492,16 @@ final class MapboxMapController
 
   @Override
   public void onScaleBegin(@NonNull StandardScaleGestureDetector detector) {
-    Log.e(TAG, "scale begin");
     methodChannel.invokeMethod("scale#onScaleBegin", null);
   }
 
   @Override
   public void onScale(@NonNull StandardScaleGestureDetector detector) {
-    Log.e(TAG, "scale");
     methodChannel.invokeMethod("scale#onScale", null);
   }
 
   @Override
   public void onScaleEnd(@NonNull StandardScaleGestureDetector detector) {
-    Log.e(TAG, "scale end");
     methodChannel.invokeMethod("scale#onScaleEnd", null);
   }
 
