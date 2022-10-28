@@ -41,6 +41,7 @@ import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdate;
+import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.constants.MapboxConstants;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.geometry.LatLngBounds;
@@ -680,6 +681,26 @@ final class MapboxMapController
           Log.d(TAG, exception.toString());
           result.error("MAPBOX LOCALIZATION PLUGIN ERROR", exception.toString(), null);
         }
+        break;
+      }
+      case "map#updateContentInsets": {
+        final Boolean animated = call.argument("animated");
+        final Map<String, Double> bounds = call.argument("bounds");
+
+        final CameraPosition cameraPosition = new CameraPosition.Builder().padding(
+                bounds.get("left") * density,
+                bounds.get("top") * density,
+                bounds.get("right") * density,
+                bounds.get("bottom") * density
+        ).build();
+
+        if (animated) {
+          mapboxMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+        } else {
+          mapboxMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+        }
+
+        result.success(null);
         break;
       }
       case "map#setMapLanguage": {
