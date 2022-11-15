@@ -46,21 +46,6 @@ class MapboxStyles {
   static const String TRAFFIC_NIGHT = "mapbox://styles/mapbox/traffic-night-v2";
 }
 
-/// The camera mode, which determines how the map camera will track the rendered location.
-enum MyLocationTrackingMode {
-  None,
-  Tracking,
-  TrackingCompass,
-  TrackingGPS,
-}
-
-/// Render mode
-enum MyLocationRenderMode {
-  NORMAL,
-  COMPASS,
-  GPS,
-}
-
 /// Compass View Position
 enum CompassViewPosition {
   TopLeft,

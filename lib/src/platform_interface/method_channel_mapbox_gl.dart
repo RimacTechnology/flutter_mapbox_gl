@@ -84,41 +84,9 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
       case 'map#onAttributionClick':
         onAttributionClickPlatform(null);
         break;
-      case 'map#onCameraTrackingChanged':
-        final int mode = call.arguments['mode'];
-        onCameraTrackingChangedPlatform(MyLocationTrackingMode.values[mode]);
-        break;
-      case 'map#onCameraTrackingDismissed':
-        onCameraTrackingDismissedPlatform(null);
         break;
       case 'map#onIdle':
         onMapIdlePlatform(null);
-        break;
-      case 'map#onUserLocationUpdated':
-        final dynamic userLocation = call.arguments['userLocation'];
-        final dynamic heading = call.arguments['heading'];
-        onUserLocationUpdatedPlatform(UserLocation(
-            position: LatLng(
-              userLocation['position'][0],
-              userLocation['position'][1],
-            ),
-            altitude: userLocation['altitude'],
-            bearing: userLocation['bearing'],
-            speed: userLocation['speed'],
-            horizontalAccuracy: userLocation['horizontalAccuracy'],
-            verticalAccuracy: userLocation['verticalAccuracy'],
-            heading: heading == null
-                ? null
-                : UserHeading(
-                    magneticHeading: heading['magneticHeading'],
-                    trueHeading: heading['trueHeading'],
-                    headingAccuracy: heading['headingAccuracy'],
-                    x: heading['x'],
-                    y: heading['y'],
-                    z: heading['x'],
-                    timestamp: DateTime.fromMillisecondsSinceEpoch(heading['timestamp']),
-                  ),
-            timestamp: DateTime.fromMillisecondsSinceEpoch(userLocation['timestamp'])));
         break;
       default:
         throw MissingPluginException();
@@ -177,13 +145,6 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
   Future<bool?> moveCamera(CameraUpdate cameraUpdate) async {
     return await _channel.invokeMethod('camera#move', <String, dynamic>{
       'cameraUpdate': cameraUpdate.toJson(),
-    });
-  }
-
-  @override
-  Future<void> updateMyLocationTrackingMode(MyLocationTrackingMode myLocationTrackingMode) async {
-    await _channel.invokeMethod('map#updateMyLocationTrackingMode', <String, dynamic>{
-      'mode': myLocationTrackingMode.index,
     });
   }
 

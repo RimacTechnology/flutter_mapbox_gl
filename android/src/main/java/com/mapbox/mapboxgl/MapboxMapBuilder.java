@@ -27,9 +27,6 @@ class MapboxMapBuilder implements MapboxMapOptionsSink {
     .textureMode(true)
     .attributionEnabled(true);
   private boolean trackCameraPosition = false;
-  private boolean myLocationEnabled = false;
-  private int myLocationTrackingMode = 0;
-  private int myLocationRenderMode = 0;
   private String styleString = Style.MAPBOX_STREETS;
   private List<String> annotationOrder = new ArrayList();
   private List<String> annotationConsumeTapEvents = new ArrayList();
@@ -40,9 +37,6 @@ class MapboxMapBuilder implements MapboxMapOptionsSink {
     final MapboxMapController controller =
       new MapboxMapController(id, context,  messenger, lifecycleProvider, options, accessToken, styleString, annotationOrder, annotationConsumeTapEvents);
     controller.init();
-    controller.setMyLocationEnabled(myLocationEnabled);
-    controller.setMyLocationTrackingMode(myLocationTrackingMode);
-    controller.setMyLocationRenderMode(myLocationRenderMode);
     controller.setTrackCameraPosition(trackCameraPosition);
     return controller;
   }
@@ -102,21 +96,6 @@ class MapboxMapBuilder implements MapboxMapOptionsSink {
   @Override
   public void setZoomGesturesEnabled(boolean zoomGesturesEnabled) {
     options.zoomGesturesEnabled(zoomGesturesEnabled);
-  }
-
-  @Override
-  public void setMyLocationEnabled(boolean myLocationEnabled) {
-    this.myLocationEnabled = myLocationEnabled;
-  }
-
-  @Override
-  public void setMyLocationTrackingMode(int myLocationTrackingMode) {
-    this.myLocationTrackingMode = myLocationTrackingMode;
-  }
-
-  @Override
-  public void setMyLocationRenderMode(int myLocationRenderMode) {
-    this.myLocationRenderMode = myLocationRenderMode;
   }
 
   public void setLogoViewMargins(int x, int y) {

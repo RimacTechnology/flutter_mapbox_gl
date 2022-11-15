@@ -45,14 +45,7 @@ abstract class MapboxGlPlatform {
 
   final ArgumentCallbacks<void> onAttributionClickPlatform = ArgumentCallbacks<void>();
 
-  final ArgumentCallbacks<MyLocationTrackingMode> onCameraTrackingChangedPlatform =
-      ArgumentCallbacks<MyLocationTrackingMode>();
-
-  final onCameraTrackingDismissedPlatform = ArgumentCallbacks<void>();
-
   final onMapIdlePlatform = ArgumentCallbacks<void>();
-
-  final onUserLocationUpdatedPlatform = ArgumentCallbacks<UserLocation>();
 
   Future<void> initPlatform(int id) async {
     throw UnimplementedError('initPlatform() has not been implemented.');
@@ -73,10 +66,6 @@ abstract class MapboxGlPlatform {
 
   Future<bool?> moveCamera(CameraUpdate cameraUpdate) async {
     throw UnimplementedError('moveCamera() has not been implemented.');
-  }
-
-  Future<void> updateMyLocationTrackingMode(MyLocationTrackingMode myLocationTrackingMode) async {
-    throw UnimplementedError('updateMyLocationTrackingMode() has not been implemented.');
   }
 
   Future<void> matchMapLanguageWithDeviceDefault() async {

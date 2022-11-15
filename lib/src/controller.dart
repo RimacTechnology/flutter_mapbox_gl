@@ -14,11 +14,6 @@ typedef void OnAttributionClickCallback();
 
 typedef void OnStyleLoadedCallback();
 
-typedef void OnUserLocationUpdated(UserLocation location);
-
-typedef void OnCameraTrackingDismissedCallback();
-typedef void OnCameraTrackingChangedCallback(MyLocationTrackingMode mode);
-
 typedef void OnCameraIdleCallback();
 
 typedef void OnMapIdleCallback();
@@ -46,10 +41,7 @@ class MapboxMapController extends ChangeNotifier {
     this.onMapClick,
     this.onMapLongClick,
     this.onAttributionClick,
-    this.onCameraTrackingDismissed,
-    this.onCameraTrackingChanged,
     this.onMapIdle,
-    this.onUserLocationUpdated,
     this.onCameraIdle,
   }) : _mapboxGlPlatform = mapboxGlPlatform {
     _cameraPosition = initialCameraPosition;
@@ -154,25 +146,10 @@ class MapboxMapController extends ChangeNotifier {
       }
     });
 
-    _mapboxGlPlatform.onCameraTrackingChangedPlatform.add((mode) {
-      if (onCameraTrackingChanged != null) {
-        onCameraTrackingChanged!(mode);
-      }
-    });
-
-    _mapboxGlPlatform.onCameraTrackingDismissedPlatform.add((_) {
-      if (onCameraTrackingDismissed != null) {
-        onCameraTrackingDismissed!();
-      }
-    });
-
     _mapboxGlPlatform.onMapIdlePlatform.add((_) {
       if (onMapIdle != null) {
         onMapIdle!();
       }
-    });
-    _mapboxGlPlatform.onUserLocationUpdatedPlatform.add((location) {
-      onUserLocationUpdated?.call(location);
     });
   }
 
@@ -188,11 +165,7 @@ class MapboxMapController extends ChangeNotifier {
   final OnMapClickCallback? onMapClick;
   final OnMapLongClickCallback? onMapLongClick;
 
-  final OnUserLocationUpdated? onUserLocationUpdated;
   final OnAttributionClickCallback? onAttributionClick;
-
-  final OnCameraTrackingDismissedCallback? onCameraTrackingDismissed;
-  final OnCameraTrackingChangedCallback? onCameraTrackingChanged;
 
   final OnCameraIdleCallback? onCameraIdle;
 
@@ -467,14 +440,6 @@ class MapboxMapController extends ChangeNotifier {
       belowLayerId: belowLayerId,
       sourceLayer: sourceLayer,
     );
-  }
-
-  /// Updates user location tracking mode.
-  ///
-  /// The returned [Future] completes after the change has been made on the
-  /// platform side.
-  Future<void> updateMyLocationTrackingMode(MyLocationTrackingMode myLocationTrackingMode) async {
-    return _mapboxGlPlatform.updateMyLocationTrackingMode(myLocationTrackingMode);
   }
 
   /// Updates the language of the map labels to match the device's language.
