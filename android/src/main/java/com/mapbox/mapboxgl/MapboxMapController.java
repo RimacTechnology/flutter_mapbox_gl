@@ -30,10 +30,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import com.mapbox.android.core.location.LocationEngine;
-import com.mapbox.android.core.location.LocationEngineCallback;
-import com.mapbox.android.core.location.LocationEngineProvider;
-import com.mapbox.android.core.location.LocationEngineResult;
 import com.mapbox.android.gestures.StandardScaleGestureDetector;
 import com.mapbox.android.telemetry.TelemetryEnabler;
 import com.mapbox.geojson.Feature;
@@ -47,11 +43,6 @@ import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.geometry.LatLngBounds;
 import com.mapbox.mapboxsdk.geometry.LatLngQuad;
 import com.mapbox.mapboxsdk.geometry.VisibleRegion;
-import com.mapbox.mapboxsdk.location.LocationComponent;
-import com.mapbox.mapboxsdk.location.LocationComponentOptions;
-import com.mapbox.mapboxsdk.location.OnCameraTrackingChangedListener;
-import com.mapbox.mapboxsdk.location.modes.CameraMode;
-import com.mapbox.mapboxsdk.location.modes.RenderMode;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.MapboxMapOptions;
@@ -129,7 +120,6 @@ final class MapboxMapController
         MapboxMapOptionsSink,
         MethodChannel.MethodCallHandler,
         OnMapReadyCallback,
-        OnCameraTrackingChangedListener,
         OnSymbolTappedListener,
         OnLineTappedListener,
         OnCircleTappedListener,
@@ -150,17 +140,11 @@ final class MapboxMapController
   private CircleManager circleManager;
   private FillManager fillManager;
   private boolean trackCameraPosition = false;
-  private boolean myLocationEnabled = false;
-  private int myLocationTrackingMode = 0;
-  private int myLocationRenderMode = 0;
   private boolean disposed = false;
   private final float density;
   private MethodChannel.Result mapReadyResult;
   private final Context context;
   private final String styleStringInitial;
-  private LocationComponent locationComponent = null;
-  private LocationEngine locationEngine = null;
-  private LocationEngineCallback<LocationEngineResult> locationEngineCallback = null;
   private LocalizationPlugin localizationPlugin;
   private Style style;
   private List<String> annotationOrder;
@@ -326,7 +310,6 @@ final class MapboxMapController
     mapView.addOnDidBecomeIdleListener(this);
 
     setStyleString(styleStringInitial);
-    // updateMyLocationEnabled();
   }
 
   @Override
@@ -382,10 +365,6 @@ final class MapboxMapController
         }
       }
 
-      if (myLocationEnabled) {
-        enableLocationComponent(style);
-      }
-
       if (null != bounds) {
         mapboxMap.setLatLngBoundsForCameraTarget(bounds);
       }
@@ -400,49 +379,6 @@ final class MapboxMapController
     }
   };
 
-  @SuppressWarnings( {"MissingPermission"})
-  private void enableLocationComponent(@NonNull Style style) {
-    if (hasLocationPermission()) {
-      locationEngine = LocationEngineProvider.getBestLocationEngine(context);
-      LocationComponentOptions locationComponentOptions = LocationComponentOptions.builder(context)
-              .trackingGesturesManagement(true)
-              .build();
-      locationComponent = mapboxMap.getLocationComponent();
-      locationComponent.activateLocationComponent(context, style, locationComponentOptions);
-      locationComponent.setLocationComponentEnabled(true);
-      // locationComponent.setRenderMode(RenderMode.COMPASS); // remove or keep default?
-      locationComponent.setLocationEngine(locationEngine);
-      locationComponent.setMaxAnimationFps(30);
-      updateMyLocationTrackingMode();
-      setMyLocationTrackingMode(this.myLocationTrackingMode);
-      updateMyLocationRenderMode();
-      setMyLocationRenderMode(this.myLocationRenderMode);
-      locationComponent.addOnCameraTrackingChangedListener(this);
-    } else {
-      Log.e(TAG, "missing location permissions");
-    }
-  }
-
-  private void onUserLocationUpdate(Location location){
-    if(location==null){
-      return;
-    }
-
-    final Map<String, Object> userLocation = new HashMap<>(6);
-    userLocation.put("position", new double[]{location.getLatitude(), location.getLongitude()});
-    userLocation.put("speed", location.getSpeed());
-    userLocation.put("altitude", location.getAltitude());
-    userLocation.put("bearing", location.getBearing());
-    userLocation.put("horizontalAccuracy", location.getAccuracy());
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      userLocation.put("verticalAccuracy", (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ? location.getVerticalAccuracyMeters() : null);
-    }
-    userLocation.put("timestamp", location.getTime());
-
-    final Map<String, Object> arguments = new HashMap<>(1);
-    arguments.put("userLocation", userLocation);
-    methodChannel.invokeMethod("map#onUserLocationUpdated", arguments);
-  }
 
   private void addGeoJsonSource(String sourceName, String source) {
     FeatureCollection featureCollection = FeatureCollection.fromJson(source);
@@ -555,8 +491,7 @@ final class MapboxMapController
   }
 
   private Expression parseFilter(String filter) {
-    JsonParser parser = new JsonParser();
-    JsonElement filterJsonElement = parser.parse(filter);
+    JsonElement filterJsonElement = JsonParser.parseString(filter);
     return filterJsonElement.isJsonNull() ? null : Expression.Converter.convert(filterJsonElement);
   }
 
@@ -665,12 +600,6 @@ final class MapboxMapController
       case "map#update": {
         Convert.interpretMapboxMapOptions(call.argument("options"), this, context);
         result.success(Convert.toJson(getCameraPosition()));
-        break;
-      }
-      case "map#updateMyLocationTrackingMode": {
-        int myLocationTrackingMode = call.argument("mode");
-        setMyLocationTrackingMode(myLocationTrackingMode);
-        result.success(null);
         break;
       }
       case "map#matchMapLanguageWithDeviceDefault": {
@@ -1372,32 +1301,6 @@ final class MapboxMapController
         result.success(null);
         break;
       }
-      case "locationComponent#getLastLocation": {
-        Log.e(TAG, "location component: getLastLocation");
-        if (this.myLocationEnabled && locationComponent != null && locationEngine != null) {
-          Map<String, Object> reply = new HashMap<>();
-          locationEngine.getLastLocation(new LocationEngineCallback<LocationEngineResult>() {
-            @Override
-            public void onSuccess(LocationEngineResult locationEngineResult) {
-              Location lastLocation = locationEngineResult.getLastLocation();
-              if (lastLocation != null) {
-                reply.put("latitude", lastLocation.getLatitude());
-                reply.put("longitude", lastLocation.getLongitude());
-                reply.put("altitude", lastLocation.getAltitude());
-                result.success(reply);
-              } else {
-                result.error("", "", null); // ???
-              }
-            }
-
-            @Override
-            public void onFailure(@NonNull Exception exception) {
-              result.error("", "", null); // ???
-            }
-          });
-        }
-        break;
-      }
       case "style#addImage": {
         if(style==null) {
           result.error("STYLE IS NULL", "The style is null. Has onStyleLoaded() already been invoked?", null);
@@ -1556,19 +1459,6 @@ final class MapboxMapController
   }
 
   @Override
-  public void onCameraTrackingChanged(int currentMode) {
-    final Map<String, Object> arguments = new HashMap<>(2);
-    arguments.put("mode", currentMode);
-    methodChannel.invokeMethod("map#onCameraTrackingChanged", arguments);
-  }
-
-  @Override
-  public void onCameraTrackingDismissed() {
-    this.myLocationTrackingMode = 0;
-    methodChannel.invokeMethod("map#onCameraTrackingDismissed", new HashMap<>());
-  }
-
-  @Override
   public void onDidBecomeIdle() {
     methodChannel.invokeMethod("map#onIdle", new HashMap<>());
   }
@@ -1687,9 +1577,6 @@ final class MapboxMapController
       return;
     }
 
-    if (locationComponent != null) {
-      locationComponent.setLocationComponentEnabled(false);
-    }
     if (symbolManager != null) {
       symbolManager.onDestroy();
     }
@@ -1702,7 +1589,6 @@ final class MapboxMapController
     if (fillManager != null) {
       fillManager.onDestroy();
     }
-    stopListeningForLocationUpdates();
 
     mapView.onDestroy();
     mapView = null;
@@ -1730,9 +1616,6 @@ final class MapboxMapController
       return;
     }
     mapView.onResume();
-    if(myLocationEnabled){
-      startListeningForLocationUpdates();
-    }
   }
 
   @Override
@@ -1801,39 +1684,6 @@ final class MapboxMapController
   @Override
   public void setZoomGesturesEnabled(boolean zoomGesturesEnabled) {
     mapboxMap.getUiSettings().setZoomGesturesEnabled(zoomGesturesEnabled);
-  }
-
-  @Override
-  public void setMyLocationEnabled(boolean myLocationEnabled) {
-    if (this.myLocationEnabled == myLocationEnabled) {
-      return;
-    }
-    this.myLocationEnabled = myLocationEnabled;
-    if (mapboxMap != null) {
-      updateMyLocationEnabled();
-    }
-  }
-
-  @Override
-  public void setMyLocationTrackingMode(int myLocationTrackingMode) {
-    if (this.myLocationTrackingMode == myLocationTrackingMode) {
-      return;
-    }
-    this.myLocationTrackingMode = myLocationTrackingMode;
-    if (mapboxMap != null && locationComponent != null) {
-      updateMyLocationTrackingMode();
-    }
-  }
-
-  @Override
-  public void setMyLocationRenderMode(int myLocationRenderMode) {
-    if (this.myLocationRenderMode == myLocationRenderMode) {
-      return;
-    }
-    this.myLocationRenderMode = myLocationRenderMode;
-    if (mapboxMap != null && locationComponent != null) {
-      updateMyLocationRenderMode();
-    }
   }
 
   public void setLogoViewMargins(int x, int y) {
@@ -1916,68 +1766,6 @@ final class MapboxMapController
         mapboxMap.getUiSettings().setAttributionMargins(0, 0, x, y);
         break;
     }
-  }
-
-  private void updateMyLocationEnabled() {
-    if(this.locationComponent == null && myLocationEnabled){
-      enableLocationComponent(mapboxMap.getStyle());
-    }
-
-    if(myLocationEnabled){
-      startListeningForLocationUpdates();
-    }else {
-      stopListeningForLocationUpdates();
-    }
-
-    locationComponent.setLocationComponentEnabled(myLocationEnabled);
-  }
-
-  private void startListeningForLocationUpdates(){
-    if(locationEngineCallback == null && locationComponent!=null && locationComponent.getLocationEngine()!=null){
-      locationEngineCallback = new LocationEngineCallback<LocationEngineResult>() {
-        @Override
-        public void onSuccess(LocationEngineResult result) {
-          onUserLocationUpdate(result.getLastLocation());
-        }
-
-        @Override
-        public void onFailure(@NonNull Exception exception) {
-        }
-      };
-      locationComponent.getLocationEngine().requestLocationUpdates(locationComponent.getLocationEngineRequest(), locationEngineCallback , null);
-    }
-  }
-
-  private void stopListeningForLocationUpdates(){
-    if(locationEngineCallback != null && locationComponent!=null && locationComponent.getLocationEngine()!=null){
-      locationComponent.getLocationEngine().removeLocationUpdates(locationEngineCallback);
-      locationEngineCallback = null;
-    }
-  }
-
-  private void updateMyLocationTrackingMode() {
-    int[] mapboxTrackingModes = new int[] {CameraMode.NONE, CameraMode.TRACKING, CameraMode.TRACKING_COMPASS, CameraMode.TRACKING_GPS};
-    locationComponent.setCameraMode(mapboxTrackingModes[this.myLocationTrackingMode]);
-  }
-
-  private void updateMyLocationRenderMode() {
-    int[] mapboxRenderModes = new int[] {RenderMode.NORMAL, RenderMode.COMPASS, RenderMode.GPS};
-    locationComponent.setRenderMode(mapboxRenderModes[this.myLocationRenderMode]);
-  }
-
-  private boolean hasLocationPermission() {
-    return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-            == PackageManager.PERMISSION_GRANTED
-            || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
-            == PackageManager.PERMISSION_GRANTED;
-  }
-
-  private int checkSelfPermission(String permission) {
-    if (permission == null) {
-      throw new IllegalArgumentException("permission is null");
-    }
-    return context.checkPermission(
-            permission, android.os.Process.myPid(), android.os.Process.myUid());
   }
 
   /**

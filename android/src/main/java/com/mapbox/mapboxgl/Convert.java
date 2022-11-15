@@ -287,18 +287,6 @@ class Convert {
     if (zoomGesturesEnabled != null) {
       sink.setZoomGesturesEnabled(toBoolean(zoomGesturesEnabled));
     }
-    final Object myLocationEnabled = data.get("myLocationEnabled");
-    if (myLocationEnabled != null) {
-      sink.setMyLocationEnabled(toBoolean(myLocationEnabled));
-    }
-    final Object myLocationTrackingMode = data.get("myLocationTrackingMode");
-    if (myLocationTrackingMode != null) {
-      sink.setMyLocationTrackingMode(toInt(myLocationTrackingMode));
-    }
-    final Object myLocationRenderMode = data.get("myLocationRenderMode");
-    if (myLocationRenderMode != null) {
-      sink.setMyLocationRenderMode(toInt(myLocationRenderMode));
-    }
     final Object logoViewMargins = data.get("logoViewMargins");
     if(logoViewMargins != null){
       final List logoViewMarginsData = toList(logoViewMargins);

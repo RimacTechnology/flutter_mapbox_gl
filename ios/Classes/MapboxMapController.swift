@@ -23,7 +23,6 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
     private var initialTilt: CGFloat?
     private var cameraTargetBounds: MGLCoordinateBounds?
     private var trackCameraPosition = false
-    private var myLocationEnabled = false
 
     private var symbolAnnotationController: MGLSymbolAnnotationController?
     private var circleAnnotationController: MGLCircleAnnotationController?
@@ -174,14 +173,6 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                     result(nil)
                 }
             }
-        case "map#updateMyLocationTrackingMode":
-            guard let arguments = methodCall.arguments as? [String: Any] else { return }
-            if let myLocationTrackingMode = arguments["mode"] as? UInt,
-               let trackingMode = MGLUserTrackingMode(rawValue: myLocationTrackingMode)
-            {
-                setMyLocationTrackingMode(myLocationTrackingMode: trackingMode)
-            }
-            result(nil)
         case "map#matchMapLanguageWithDeviceDefault":
             if let style = mapView.style {
                 style.localizeLabels(into: nil)
@@ -721,10 +712,6 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
         }
     }
 
-    private func updateMyLocationEnabled() {
-        mapView.showsUserLocation = myLocationEnabled
-    }
-
     private func getCamera() -> MGLMapCamera? {
         return trackCameraPosition ? mapView.camera : nil
     }
@@ -865,7 +852,6 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
      */
     func mapView(_ mapView: MGLMapView, didFinishLoading _: MGLStyle) {
         isMapReady = true
-        updateMyLocationEnabled()
 
         if let initialTilt = initialTilt {
             let camera = mapView.camera
@@ -981,26 +967,6 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
     // Allow callout view to appear when an annotation is tapped.
     func mapView(_: MGLMapView, annotationCanShowCallout _: MGLAnnotation) -> Bool {
         return true
-    }
-
-    func mapView(_: MGLMapView, didUpdate userLocation: MGLUserLocation?) {
-        if let channel = channel, let userLocation = userLocation,
-           let location = userLocation.location
-        {
-            channel.invokeMethod("map#onUserLocationUpdated", arguments: [
-                "userLocation": location.toDict(),
-                "heading": userLocation.heading?.toDict(),
-            ])
-        }
-    }
-
-    func mapView(_: MGLMapView, didChange mode: MGLUserTrackingMode, animated _: Bool) {
-        if let channel = channel {
-            channel.invokeMethod("map#onCameraTrackingChanged", arguments: ["mode": mode.rawValue])
-            if mode == .none {
-                channel.invokeMethod("map#onCameraTrackingDismissed", arguments: [])
-            }
-        }
     }
 
     func addSymbolLayer(
@@ -1354,29 +1320,6 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
 
     func setZoomGesturesEnabled(zoomGesturesEnabled: Bool) {
         mapView.allowsZooming = zoomGesturesEnabled
-    }
-
-    func setMyLocationEnabled(myLocationEnabled: Bool) {
-        if self.myLocationEnabled == myLocationEnabled {
-            return
-        }
-        self.myLocationEnabled = myLocationEnabled
-        updateMyLocationEnabled()
-    }
-
-    func setMyLocationTrackingMode(myLocationTrackingMode: MGLUserTrackingMode) {
-        mapView.userTrackingMode = myLocationTrackingMode
-    }
-
-    func setMyLocationRenderMode(myLocationRenderMode: MyLocationRenderMode) {
-        switch myLocationRenderMode {
-        case .Normal:
-            mapView.showsUserHeadingIndicator = false
-        case .Compass:
-            mapView.showsUserHeadingIndicator = true
-        case .Gps:
-            NSLog("RenderMode.GPS currently not supported")
-        }
     }
 
     func setLogoViewMargins(x: Double, y: Double) {

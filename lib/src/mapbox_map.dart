@@ -30,20 +30,14 @@ class MapboxMap extends StatefulWidget {
     this.zoomGesturesEnabled = true,
     this.tiltGesturesEnabled = true,
     this.trackCameraPosition = false,
-    this.myLocationEnabled = false,
-    this.myLocationTrackingMode = MyLocationTrackingMode.None,
-    this.myLocationRenderMode = MyLocationRenderMode.COMPASS,
     this.logoViewMargins,
     this.compassViewPosition,
     this.compassViewMargins,
     this.attributionButtonPosition,
     this.attributionButtonMargins,
     this.onMapClick,
-    this.onUserLocationUpdated,
     this.onMapLongClick,
     this.onAttributionClick,
-    this.onCameraTrackingDismissed,
-    this.onCameraTrackingChanged,
     this.onCameraIdle,
     this.onMapIdle,
     this.annotationOrder = const [
@@ -121,38 +115,6 @@ class MapboxMap extends StatefulWidget {
   /// will notify it's listeners and you can then get the new MapboxMapController.cameraPosition.
   final bool trackCameraPosition;
 
-  /// True if a "My Location" layer should be shown on the map.
-  ///
-  /// This layer includes a location indicator at the current device location,
-  /// as well as a My Location button.
-  /// * The indicator is a small blue dot if the device is stationary, or a
-  /// chevron if the device is moving.
-  /// * The My Location button animates to focus on the user's current location
-  /// if the user's location is currently known.
-  ///
-  /// Enabling this feature requires adding location permissions to both native
-  /// platforms of your app.
-  /// * On Android add either
-  /// `<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />`
-  /// or `<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />`
-  /// to your `AndroidManifest.xml` file. `ACCESS_COARSE_LOCATION` returns a
-  /// location with an accuracy approximately equivalent to a city block, while
-  /// `ACCESS_FINE_LOCATION` returns as precise a location as possible, although
-  /// it consumes more battery power. You will also need to request these
-  /// permissions during run-time. If they are not granted, the My Location
-  /// feature will fail silently.
-  /// * On iOS add a `NSLocationWhenInUseUsageDescription` key to your
-  /// `Info.plist` file. This will automatically prompt the user for permissions
-  /// when the map tries to turn on the My Location layer.
-  final bool myLocationEnabled;
-
-  /// The mode used to let the map's camera follow the device's physical location.
-  /// `myLocationEnabled` needs to be true for values other than `MyLocationTrackingMode.None` to work.
-  final MyLocationTrackingMode myLocationTrackingMode;
-
-  /// The mode to render the user location symbol
-  final MyLocationRenderMode myLocationRenderMode;
-
   /// Set the layout margins for the Mapbox Logo
   final Point? logoViewMargins;
 
@@ -186,16 +148,6 @@ class MapboxMap extends StatefulWidget {
   final OnMapClickCallback? onMapLongClick;
 
   final OnAttributionClickCallback? onAttributionClick;
-
-  /// While the `myLocationEnabled` property is set to `true`, this method is
-  /// called whenever a new location update is received by the map view.
-  final OnUserLocationUpdated? onUserLocationUpdated;
-
-  /// Called when the map's camera no longer follows the physical device location, e.g. because the user moved the map
-  final OnCameraTrackingDismissedCallback? onCameraTrackingDismissed;
-
-  /// Called when the location tracking mode changes
-  final OnCameraTrackingChangedCallback? onCameraTrackingChanged;
 
   // Called when camera movement has ended.
   final OnCameraIdleCallback? onCameraIdle;
@@ -278,11 +230,8 @@ class _MapboxMapState extends State<MapboxMap> {
         });
       },
       onMapClick: widget.onMapClick,
-      onUserLocationUpdated: widget.onUserLocationUpdated,
       onMapLongClick: widget.onMapLongClick,
       onAttributionClick: widget.onAttributionClick,
-      onCameraTrackingDismissed: widget.onCameraTrackingDismissed,
-      onCameraTrackingChanged: widget.onCameraTrackingChanged,
       onCameraIdle: widget.onCameraIdle,
       onMapIdle: widget.onMapIdle,
     );
@@ -309,9 +258,6 @@ class _MapboxMapOptions {
     this.tiltGesturesEnabled,
     this.trackCameraPosition,
     this.zoomGesturesEnabled,
-    this.myLocationEnabled,
-    this.myLocationTrackingMode,
-    this.myLocationRenderMode,
     this.logoViewMargins,
     this.compassViewPosition,
     this.compassViewMargins,
@@ -330,9 +276,6 @@ class _MapboxMapOptions {
       tiltGesturesEnabled: map.tiltGesturesEnabled,
       trackCameraPosition: map.trackCameraPosition,
       zoomGesturesEnabled: map.zoomGesturesEnabled,
-      myLocationEnabled: map.myLocationEnabled,
-      myLocationTrackingMode: map.myLocationTrackingMode,
-      myLocationRenderMode: map.myLocationRenderMode,
       logoViewMargins: map.logoViewMargins,
       compassViewPosition: map.compassViewPosition,
       compassViewMargins: map.compassViewMargins,
@@ -358,12 +301,6 @@ class _MapboxMapOptions {
   final bool? trackCameraPosition;
 
   final bool? zoomGesturesEnabled;
-
-  final bool? myLocationEnabled;
-
-  final MyLocationTrackingMode? myLocationTrackingMode;
-
-  final MyLocationRenderMode? myLocationRenderMode;
 
   final Point? logoViewMargins;
 
@@ -401,9 +338,6 @@ class _MapboxMapOptions {
     addIfNonNull('tiltGesturesEnabled', tiltGesturesEnabled);
     addIfNonNull('zoomGesturesEnabled', zoomGesturesEnabled);
     addIfNonNull('trackCameraPosition', trackCameraPosition);
-    addIfNonNull('myLocationEnabled', myLocationEnabled);
-    addIfNonNull('myLocationTrackingMode', myLocationTrackingMode?.index);
-    addIfNonNull('myLocationRenderMode', myLocationRenderMode?.index);
     addIfNonNull('logoViewMargins', pointToArray(logoViewMargins));
     addIfNonNull('compassViewPosition', compassViewPosition?.index);
     addIfNonNull('compassViewMargins', pointToArray(compassViewMargins));
